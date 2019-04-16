@@ -1,0 +1,251 @@
+<!DOCTYPE HTML>
+
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Bootstrap-ecommerce by Vosidiy">
+
+<title>Amazon OOAD Project</title>
+
+
+<link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico">
+
+<!-- jQuery -->
+<script src="js/jquery-2.0.0.min.js" type="text/javascript"></script>
+
+
+
+
+<!-- Bootstrap4 files-->
+<script src="js/bootstrap.bundle.min.js" type="text/javascript"></script>
+<link href="css/bootstrap.css" rel="stylesheet" type="text/css"/>
+
+<!-- Font awesome 5 -->
+<link href="fonts/fontawesome/css/fontawesome-all.min.css" type="text/css" rel="stylesheet">
+
+<!-- plugin: owl carousel  -->
+<link href="plugins/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+<link href="plugins/owlcarousel/assets/owl.theme.default.css" rel="stylesheet">
+
+<script src="plugins/owlcarousel/owl.carousel.min.js"></script>
+
+<link rel="stylesheet" href="css/style.css">
+
+
+<!-- custom style -->
+<link href="css/ui.css" rel="stylesheet" type="text/css"/>
+<link href="css/responsive.css" rel="stylesheet" media="only screen and (max-width: 1200px)" />
+<link href="css/custom.css" rel="stylesheet"  />
+
+
+<script>
+var colname = [];
+var selectedcols = [];
+$(document).ready(function() {
+
+	var sel = $('<tables>').appendTo('body');
+	var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getalltables";
+	$.get(api , function(data, status){
+		console.log(data);
+		data.forEach(function(item) {
+			/* var temp = "<tr><td>"+item.addressline1+", "+ item.addressline2 +", "+item.street+", "+ item.city +", "+item.pincode+"</td>";
+			$('#myAddress').append(temp); */
+			console.log(item);
+			//sel.append($("<option>").attr('value',item).text(item));
+			
+			var o = new Option(item.split('.')[0], item.split('.')[0]);
+			/// jquerify the DOM object 'o' so we can use the html method
+			$(o).html(item.split('.')[0]);
+			$("#tables").append(o);
+		});
+	});
+	
+	
+	$('#tables').change(function () { 
+		$('#showrow1').show();
+		$('#showrow2').show();
+		var tablename = $(this).children("option:selected").val();
+		document.getElementById('currentCat').innerHTML = "SELECT FROM " + tablename;
+
+		//document.getElementById("selectcols").disabled = false;
+		var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallcolumns/" + tablename;
+
+		$.get(api , function(data, status){
+		//console.log(data);
+			data.forEach(function(item) {
+				colname.push(item);
+				//$('#columns').append(item);
+				var o = new Option(item, item);
+				/// jquerify the DOM object 'o' so we can use the html method
+				$(o).html(item);
+				$("#columns").append(o);
+			});
+		});
+		var tablename = $(this).children("option:selected").val();
+		
+	});
+});
+
+function getSelectValues(select) {
+	  var result = [];
+	  var options = select && select.options;
+	  var opt;
+
+	  for (var i=0, iLen=options.length; i<iLen; i++) {
+	    opt = options[i];
+
+	    if (opt.selected) {
+	      result.push(opt.value || opt.text);
+	      selectedcols.push(opt.value || opt.text);
+	    }
+	  }
+	  var el = document.getElementById('currentCat');
+	  var text = (el.innerText || el.textContent);
+	  var initial = text.split("FROM");
+	  el.innerHTML = initial[0] + " " + result + " FROM " + initial[1];
+	  document.getElementById("selectcols").disabled = true;
+
+	}
+	
+function runQuery(){
+	 var data = new FormData();
+	 var tablename = $('#tables').children("option:selected").val();
+	
+	 data.append('collist', selectedcols);
+	
+	 $.ajax({
+	    	type: "POST",
+			enctype: 'multipart/form-data',
+	        url: "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallvalues/" + tablename,
+	        data: data, 
+	       	processData: false,
+	        contentType: false,
+	        cache: false,
+	        async: true,
+	        timeout: 600000,
+	        
+	        success:function(result){
+	        	var tabledata = "";
+	        	console.log(result['col1231']);
+	        	
+	        	
+	        	var keys = Object.keys(result);
+	        	var resultQuery;
+	        	var length = result[keys[0]].length;
+	        	console.log("Length" + length);
+	        	for(var i = 0; i < length ; i++) {
+	        		var count = 0;
+	        		tabledata += "<tr>";
+	        		 jQuery.each( result, function( j, item ) {
+			       		 console.log("inner here" + item);
+			       		tabledata += "<td>" + result[keys[count]][i] + "</td>";
+			       		count++;
+		       	 });
+	        		 tabledata += "</tr>";
+	        	}
+	        	
+	        	
+	        	
+	        	
+	        	
+	        	/* jQuery.each( result, function( i, val ) {
+		       		 console.log(val);
+		       		tabledata += "<tr>";
+		       		 jQuery.each( val, function( i, innerval ) {
+				       		 console.log("inner here" + innerval);
+				       		tabledata += "<td>" + innerval + "</td>";
+			       	 });
+		       		 console.log("out");
+		       		tabledata += "</tr>";
+		       		
+	       	 }); */
+	        	$('#resulttable').append(tabledata);
+	        }
+	    });
+}
+</script>
+
+
+
+
+
+
+
+
+
+<!-- jQuery -->
+<script src="js/jquery-2.0.0.min.js" type="text/javascript"> </script>
+</head>
+<body>
+<div id="admin_header_container">
+
+<div class="topnav">
+  <a href="createTable.html">Create</a>
+  <a href="insertQuery.html">Insert</a>
+  <a href="selectQuery.html">Select</a>
+    <a href="selectQueryWithCondition.html">Conditional Select</a>
+  
+</div>
+
+
+</div>
+<!--  --------------------------------------------main    body------------------------------------------------------------   -->
+ <section class="section-main bg padding-y-sm">
+<div class="card">
+  <div class="card-body" >
+  <h4 class="card-title mt-3 text-center">FETCH DATA</h4>
+  	<h5 class="card-title" id="currentCat">&nbsp</h5> 
+  	<button  onclick="runQuery()">RUN</button>
+    <h5 class="card-title" id="cat"></h5>
+</div> <!-- card.// -->
+<div class="input-group-append">
+				    </div>
+ <!-- container .//  -->
+</section>
+ 
+ <br>
+ <div style="margin-left: 50px">
+ 	<table>
+ 	<tr>
+ 		<td  valign="top">
+	 		Table:
+	 	</td>
+	 	<td  valign="top">
+			 <select name="tables" id='tables' style="width: 200px">
+			 <option selected="selected">Select Table</option>
+			</select>
+		</td>
+	
+		<td  id="showrow1" style="display:none;"  valign="top">
+			&nbsp&nbsp&nbsp&nbspColumns:
+		</td>
+		<td  id="showrow2" style="display:none;"  valign="top">
+			<select name="columns" id='columns' style="width: 200px" multiple>
+			 
+			</select>
+			<button id="selectcols" onclick="getSelectValues(document.getElementById('columns'))">Select</button>
+		</td>
+	</tr>
+	</table>
+	
+	<table id="resulttable" border="1px">
+	</table>
+</div>
+ 
+ 
+ 
+
+ <!--  ---------------------------------------------main    body  end---------------------------------------------------------  -->
+ 
+
+
+<div id="admin_footer_container">
+
+</div>
+<!-- ========================= FOOTER END // ========================= -->
+
+
+</body>
+
+</html>

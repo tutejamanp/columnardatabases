@@ -1,0 +1,22 @@
+.container {
+
+	max-width: none;
+}
+
+.no-pad {
+	padding: none;
+}
+
+.list-manager {
+	list-style-type: none;
+	padding-left: none;
+	padding-bottom: 0px;
+}
+.text-margin {
+	margin-right: 10px;
+}
+
+.list-manager > a {
+	font-size: 12px;
+	color: #000;
+}
