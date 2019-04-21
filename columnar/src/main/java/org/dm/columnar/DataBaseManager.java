@@ -2,7 +2,9 @@ package org.dm.columnar;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -20,6 +22,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.nustaq.serialization.FSTObjectInput;
+import org.nustaq.serialization.FSTObjectOutput;
+
+import com.opencsv.CSVReader;
 
 @Path("/DataBaseManagerController")
 public class DataBaseManager implements Serializable{
@@ -48,7 +54,7 @@ public class DataBaseManager implements Serializable{
         try {
             //Saving of object in a file
             FileOutputStream file = new FileOutputStream("C:\\Users\\Manpreet\\eclipse-workspace\\columnar\\" + fileName);
-            ObjectOutputStream out = new ObjectOutputStream(file);
+            FSTObjectOutput out = new FSTObjectOutput(file);
 
             // Method for serialization of object
             out.writeObject(obj);
@@ -77,7 +83,7 @@ public class DataBaseManager implements Serializable{
         {
             // Reading the object from a file
             FileInputStream file = new FileInputStream("C:\\Users\\Manpreet\\eclipse-workspace\\columnar\\" + filename);
-            ObjectInputStream in = new ObjectInputStream(file);
+            FSTObjectInput in = new FSTObjectInput(file);
 
             // Method for deserialization of object
             DataBaseManager obj = (DataBaseManager) in.readObject();
@@ -274,6 +280,79 @@ public class DataBaseManager implements Serializable{
 
     }
 
+	
+
+	@POST 
+	@Path("/batchinsertintotable/{tablename}")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response processbatchfile(@PathParam("tablename") String loadTable, @FormDataParam("csvdata") InputStream csv) throws IOException {
+	    System.out.println("Sucesss call : manp ");
+	    	    
+	    System.out.println(loadTable + " ----- ");
+        String DataBaseName = "CollegeManagement.ser";
+        //Object has been serialized previous and2 stored. Only one Database for now.
+        DataBaseManager dbManager = deserializer(DataBaseName);
+        TableManager tableManager = TableManager.deserializer(loadTable + ".ser");
+        Set<String> setm = tableManager.columnManagers.keySet();
+        
+        List <String> columnlist = new ArrayList <String>();
+        columnlist.addAll(setm);
+        
+        int sersize = tableManager.columnManagers.get(columnlist.get(0)).serializeSize;
+        
+        
+        CSVReader reader = new CSVReader(new InputStreamReader(csv));
+	    String[] nextLine;
+	    
+	    LinkedHashMap<Integer, List<String>> insertBulkData = new LinkedHashMap<Integer, List<String>>(); 
+	    
+	    int currentbulksize = 0;
+	    
+	    while ((nextLine = reader.readNext()) != null) {
+	    	
+	    	
+	    	int j = 0; 
+            for (String e : nextLine) {
+                System.out.format("%s ", e);
+                if(!insertBulkData.containsKey(j)) {
+                	List<String> nklist = new ArrayList<String>();
+                	nklist.add(e);
+                	insertBulkData.put(j, nklist);
+                }
+                else {
+                	insertBulkData.get(j).add(e);
+                }
+                j++;
+            }
+            
+            currentbulksize++;
+            
+            if(currentbulksize<sersize) {
+            	continue;
+            }
+            
+            else {
+            	tableManager.bulkinsert(insertBulkData,columnlist);
+            	insertBulkData.clear();
+            	currentbulksize =0;
+            }
+            
+	    }
+	   
+	    if(currentbulksize!=0) {
+	    	tableManager.bulkinsert(insertBulkData,columnlist);
+	    }
+            
+            //Storing the info of the table
+            TableManager.serializer(tableManager, loadTable+".ser");
+            System.out.println(dbManager);
+    
+        System.out.println("Batch insertion successfull");
+        
+        return Response.ok("Batch Insert Successfull").build();
+	}
+	
 
 	@POST 
 	@Path("/seachintotable/{tablename}")
@@ -289,15 +368,15 @@ public class DataBaseManager implements Serializable{
        String listOperation [] = operations.split(",");
        String listcolumnstodisplay [] = selectedcols.split(",");
        
-       System.out.println(loadTable + " " + noOps + " " +listcolumnName.toString() + " " + listValue.toString() + " " + listComparator.toString() + " " + listOperation.toString());
+       //System.out.println(loadTable + " " + noOps + " " +listcolumnName.toString() + " " + listValue.toString() + " " + listComparator.toString() + " " + listOperation.toString());
         
        
-       System.out.println("loadtable is :"+loadTable);
-       System.out.println("nOps is :"+noOps);
-       System.out.println("columns are :"+columns);
-       System.out.println("comparators are :"+comparators);
-       System.out.println("values are :"+values);
-       System.out.println("operations are :"+operations);
+      // System.out.println("loadtable is :"+loadTable);
+      // System.out.println("nOps is :"+noOps);
+       //System.out.println("columns are :"+columns);
+       //System.out.println("comparators are :"+comparators);
+      // System.out.println("values are :"+values);
+       //System.out.println("operations are :"+operations);
        
        
        ArrayList<String> columnli = new ArrayList<String>();
@@ -306,7 +385,7 @@ public class DataBaseManager implements Serializable{
        for (String col : listcolumnstodisplay ){
     	   columnli.add(col);
        }
-       
+       long startTime = System.currentTimeMillis(); 
        
         for(int i = 1; i < noOps; i++) {
         	
@@ -327,7 +406,10 @@ public class DataBaseManager implements Serializable{
         
         
         TableManager selectTable = TableManager.deserializer(loadTable + ".ser");
+        
         Integer[] idf = selectTable.select(operationPairs);
+        System.out.println("size of idf is : "+idf.length);
+        
         int selectedidf []  = new int [idf.length]; 
         int k =0 ; 
         
@@ -344,9 +426,12 @@ public class DataBaseManager implements Serializable{
         
         
         TableManager.serializer(selectTable, loadTable+ ".ser");
+        long endTime = System.currentTimeMillis();
+		 long totalTime = endTime - startTime; 
+		 System.out.println("------time in seconds is :"+totalTime);
         return Response.ok(selectTable.getSelectedValues(selectedidf,columnli)).build();
     }
-	
+	 
     
      @Path("/getallvalues/{tablename}")
      @POST 
@@ -361,9 +446,14 @@ public class DataBaseManager implements Serializable{
  			if(!s.isEmpty())
  				columnNames.add(s.trim());
  		}
+ 		
+ 		 long startTime = System.currentTimeMillis(); 
     	 TableManager getTableValues = TableManager.deserializer(loadTable + ".ser");
          GenericEntity<Map<String,List<String>>> columns;
 		 columns  = new GenericEntity<Map<String,List<String>>>( getTableValues.getAllSelectedValues(columnNames)) { };
+		 long endTime = System.currentTimeMillis();
+		 long totalTime = endTime - startTime; 
+		 System.out.println("time in seconds is :"+totalTime);
 		 return Response.ok(columns).build();
 
      }

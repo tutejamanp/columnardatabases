@@ -74,11 +74,15 @@ $(document).ready(function() {
 
 		$.get(api , function(data, status){
 		console.log(data);
+		var i=1;
 			data.forEach(function(item) {
 				colname.push(item);
-				$('#colnames').append("<br><br>" + item );
-				$('#colvalues').append( '<br><br><input type="text" id="' + item + '">' );
-			
+				console.log(item + " col name");
+				
+				$('#collist tr:last').after('<tr><td>'+ item + '</td><td> <input type="text" id="' + item + '"></input></td></tr>');
+				//$('#colnames').append("<br><br>" + i + " " + item );
+				//$('#colvalues').append( '<br><br><input type="text" id="' + item + '">' + i + '</input>');
+			i++;
 			});
 		});
 		});
@@ -172,6 +176,7 @@ function runQuery(){
   <a href="insertQuery.html">Insert</a>
   <a href="selectQuery.html">Select</a>
     <a href="selectQueryWithCondition.html">Conditional Select</a>
+    <a href="BulkInsert.html">Bulk Insert</a>
   
 </div>
 
@@ -200,22 +205,22 @@ function runQuery(){
 	 	</td>
 	 	<td  valign="top">
 			 <select name="tables" id='tables' style="width: 200px">
-			 <option selected="selected">Select Table</option>
-			  
+			 <option selected="selected">Select Table</option> 
 			</select>
 		</td>
 	
 	
 	</tr>
-	<tr>
-	<td id="colnames"></td>
-	<td id="colvalues"></td>
-	</tr>
-	<tr>
-	<td></td>
-	<td><Button onclick="updatequery();">Done</Button></td>
-	</tr>
 	</table>
+	<br><br>
+	<table  id="collist">
+		<tbody>
+		<tr><th> </th><th> </th></tr>
+		</tbody>
+	</table>	
+	<br><Button onclick="updatequery();">Done</Button></td>
+	
+	
 </div>
  
  

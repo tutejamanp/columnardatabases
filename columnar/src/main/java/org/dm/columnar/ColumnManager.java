@@ -10,6 +10,9 @@ import java.util.Scanner;
 import javax.swing.plaf.metal.MetalIconFactory.FolderIcon16;
 import javax.ws.rs.Path;
 
+import org.nustaq.serialization.FSTObjectInput;
+import org.nustaq.serialization.FSTObjectOutput;
+
 @Path("/ColumnManagerController")
 public class ColumnManager implements Serializable{
 	private static final long serialVersionUID = 3L;
@@ -27,6 +30,11 @@ public class ColumnManager implements Serializable{
     String columnName;
     //Latest File Structure Index
     int fileIndex;
+    
+    static int calltimer=0;
+    static int selectcalltimer=0;
+    
+    
 
     public ColumnManager(String dataType, int elementSize, int serializeSize, String name) {
         elementCount = 0;
@@ -52,7 +60,7 @@ public class ColumnManager implements Serializable{
         try {
             //Saving of object in a file
             FileOutputStream file = new FileOutputStream(fileName);
-            ObjectOutputStream out = new ObjectOutputStream(file);
+            FSTObjectOutput out = new FSTObjectOutput(file);
 
             // Method for serialization of object
             out.writeObject(obj);
@@ -80,7 +88,7 @@ public class ColumnManager implements Serializable{
         {
             // Reading the object from a file
             FileInputStream file = new FileInputStream(filename);
-            ObjectInputStream in = new ObjectInputStream(file);
+            FSTObjectInput in = new FSTObjectInput(file);
 
             ColumnSerialized obj = null;
             // Method for deserialization of object
@@ -89,14 +97,19 @@ public class ColumnManager implements Serializable{
             in.close();
             file.close();
 
-            System.out.println("Object has been deserialized ");
-            System.out.println(obj.toString());
+            
+            System.out.println(++calltimer);
+            
+            //System.out.println("hi look at this : manp3");
+            //System.out.println("Object has been deserialized lodu ");
+            //System.out.println(obj.toString());
             return obj;
         }
 
         catch(IOException ex)
         {
             System.out.println("deserialise IOException is caught");
+            ex.printStackTrace();
             return null;
         }
 
@@ -118,15 +131,17 @@ public class ColumnManager implements Serializable{
 
         //Check which file has empty space and select that file.
         System.out.println(fileNames.toString());
-        for(String file : fileNames) {
-        	System.out.println("file:" + file);
-            column = deserializer(file);
-            if(column.getElementCount() < serializeSize) {
-                selectedFileName = file;
-                createNewFile = false;
-                break;
-            }
+        
+        if(fileNames.size()!=0) {
+        String file = fileNames.get(fileNames.size()-1);
+        System.out.println("file:" + file);
+        column = deserializer(file);
+        if(column.getElementCount() < serializeSize) {
+            selectedFileName = file;
+            createNewFile = false;
         }
+        }
+        
         //if no file is empty, create a new file and Store Data
         if(createNewFile) {
             System.out.println("Creating New File");
@@ -151,6 +166,37 @@ public class ColumnManager implements Serializable{
             e.printStackTrace();
         }
     }
+    
+    
+    
+    public void bulkinsert(List<String> listinputs){
+        boolean createNewFile = true;
+        ColumnSerialized column = null;
+        String selectedFileName = "";
+        System.out.println("Creating New File");
+        column = new ColumnSerialized(serializeSize);
+        selectedFileName ="C:\\Users\\Manpreet\\eclipse-workspace\\columnar\\" + columnName+fileNames.size()+".ser";
+
+        
+        //insert into the file.
+        column.insertbulk(listinputs);
+        elementCount++;
+
+        //serialize the file
+        try {
+            serializer(column, selectedFileName);
+            //Adding the new file to file list if it's created
+            if(createNewFile){
+                fileNames.add(selectedFileName);
+                System.out.println(fileNames.size());
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
 
     /**
      * Selecting list of required elements
@@ -159,6 +205,10 @@ public class ColumnManager implements Serializable{
      * @return ArrayList Of Found Values.
      */
     public ArrayList<Integer> select(String input, int count) {
+    	
+    	
+    	
+    	
         ArrayList<Integer> index = new ArrayList<Integer>();
         int countSoFar = 0;
         int countOfSerialized = 0;
@@ -200,14 +250,22 @@ public class ColumnManager implements Serializable{
      * @return Array list of selected IDs
      */
     public ArrayList<Integer> conditionalSelect(String input, String operation) {
+    	
+    	System.out.println("mere khud k :"+ ++selectcalltimer);
+    	
         ArrayList<Integer> index = new ArrayList<Integer>();
         int countSoFar = 0;
         int countOfSerialized = 0;
 
         //Search File By File
         for(String file: fileNames) {
+        	
+        	System.out.println("hi there see this call manp1:");
+        	
             ColumnSerialized column = deserializer(file);
-
+ 
+            System.out.println("hi there see this call manp2:");
+            
             //Array Of Selected Elements
             Integer[] store = column.conditionalSelect(input, operation);
             if(store != null) {
@@ -269,7 +327,8 @@ public class ColumnManager implements Serializable{
          * @return
          */
     public ArrayList<String> getColumnValues(int[] ids) {
-        Arrays.sort(ids);
+        //just to check if the answers are still correct
+    	//Arrays.sort(ids);
         ArrayList<String> values = new ArrayList<String>();
 
         //If no ids are selected, then we return null.
@@ -281,11 +340,13 @@ public class ColumnManager implements Serializable{
         int countOfSerialized = 0; //Which file are you on
         //Search File By File
         for(String file: fileNames) {
-
+            //shifted it above as it was unneccesary to call it under while opeartion
+        	ColumnSerialized column = deserializer(file); 
+        	
             //Checking if the data at given index actually belongs to the current file
             while(ids[countSoFar] < (countOfSerialized + 1)*serializeSize) {
                 //Get the selected column
-                ColumnSerialized column = deserializer(file);
+                
                 String value = column.getSelectedValues(ids[countSoFar] - countOfSerialized*serializeSize);
                 if(value != null) {
                     values.add(value);
@@ -319,6 +380,7 @@ public class ColumnManager implements Serializable{
         for(String file: fileNames) {
             System.out.println("name of file is :"+file);
         	ColumnSerialized column = deserializer(file);
+        	System.out.println("file to be checked is : "+file);
         	values.addAll(column.getData());
         }
         
@@ -453,77 +515,4 @@ public class ColumnManager implements Serializable{
      * Testing
      * @param args
      */
-    public static void main(String[] args){
-        ColumnManager manager = new ColumnManager("String", 10, 3, "StudentNames");
-
-        boolean exit = false;
-        Scanner scan = new Scanner(System.in);
-        while(!exit) {
-            System.out.println("What action do you want to do?");
-            System.out.println("1. Insert, 2. Delete, 3. Update, 4. Select, 5. Get Values, 6. Conditional Select 7. Exit");
-            int option = Integer.parseInt(scan.next());
-            int size;
-            switch (option) {
-                case 1:
-                    System.out.println("Enter Data To Be Inserted");
-                    String input = scan.next();
-                    manager.insert(input);
-                    System.out.println("Total Elements Are :"+manager.elementCount);;
-                    break;
-                case 2:
-                    System.out.println("Enter Data To Be Deleted");
-                    ArrayList<Integer> deleteList = manager.select(scan.nextLine(), 0);
-                    size = deleteList.size();
-                    //If any elements are present
-                    if(size > 0) {
-                        Integer[] temp = deleteList.toArray(new Integer[size]);
-                        int[] result = new int[size];
-                        for (int i = 0; i < size; i++)
-                            result[i] = temp[i];
-                        manager.delete(result);
-                    }
-                    System.out.println("Total Elements Are :"+manager.elementCount);;
-                    break;
-                case 3:
-                    System.out.println("Enter The Data To Be Updated To");
-                    ArrayList<Integer> indices = manager.select(scan.nextLine(), 0);
-                    size = indices.size();
-                    //If any elements are present
-                    if(size > 0) {
-                        Integer[] temp = indices.toArray(new Integer[size]);
-                        int[] result = new int[size];
-                        for (int i = 0; i < size; i++)
-                            result[i] = temp[i];
-                        manager.update(result, scan.nextLine());
-                    } else {
-                        System.out.println("Not Found!!!");
-                    }
-                    break;
-                case 4:
-                    System.out.println("Enter Data To Be Selected");
-                    manager.select(scan.nextLine(), 0);
-                    break;
-                case 5:
-                    System.out.println("Enter Number of Ids to be selected");
-                    int count = scan.nextInt();
-                    int idsearch[] = new int[count];
-                    System.out.println ("Enter Ids to be Serached");
-                    for(int i = 0 ; i < count ; i++)
-                        idsearch[i] = scan.nextInt();
-
-                    System.out.println( manager.getColumnValues(idsearch));
-                    break;
-                case 6:
-                    System.out.println("Enter the Value To Be Compared With");
-                    scan.nextLine();
-                    String userInput = scan.nextLine();
-                    System.out.println("Enter the operator");
-                    String userOp = scan.nextLine();
-                    manager.conditionalSelect(userInput, userOp);
-                    break;
-                case 7:
-                    exit = true;
-            }
-        }
-    }
 }

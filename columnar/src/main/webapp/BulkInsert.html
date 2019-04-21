@@ -1,0 +1,206 @@
+<!DOCTYPE HTML>
+
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="author" content="Bootstrap-ecommerce by Vosidiy">
+
+<title>Amazon OOAD Project</title>
+
+
+<link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico">
+
+<!-- jQuery -->
+<script src="js/jquery-2.0.0.min.js" type="text/javascript"></script>
+
+
+
+
+<!-- Bootstrap4 files-->
+<script src="js/bootstrap.bundle.min.js" type="text/javascript"></script>
+<link href="css/bootstrap.css" rel="stylesheet" type="text/css"/>
+
+<!-- Font awesome 5 -->
+<link href="fonts/fontawesome/css/fontawesome-all.min.css" type="text/css" rel="stylesheet">
+
+<!-- plugin: owl carousel  -->
+<link href="plugins/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+<link href="plugins/owlcarousel/assets/owl.theme.default.css" rel="stylesheet">
+
+<script src="plugins/owlcarousel/owl.carousel.min.js"></script>
+
+<link rel="stylesheet" href="css/style.css">
+
+
+<!-- custom style -->
+<link href="css/ui.css" rel="stylesheet" type="text/css"/>
+<link href="css/responsive.css" rel="stylesheet" media="only screen and (max-width: 1200px)" />
+<link href="css/custom.css" rel="stylesheet"  />
+
+
+<script>
+var colname = [];
+$(document).ready(function() {
+
+	var sel = $('<tables>').appendTo('body');
+	var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getalltables";
+	$.get(api , function(data, status){
+		console.log(data);
+		data.forEach(function(item) {
+			/* var temp = "<tr><td>"+item.addressline1+", "+ item.addressline2 +", "+item.street+", "+ item.city +", "+item.pincode+"</td>";
+			$('#myAddress').append(temp); */
+			console.log(item);
+			//sel.append($("<option>").attr('value',item).text(item));
+			
+			var o = new Option(item.split('.')[0], item.split('.')[0]);
+			/// jquerify the DOM object 'o' so we can use the html method
+			$(o).html(item.split('.')[0]);
+			$("#tables").append(o);
+		});
+	});
+	
+	
+	
+	
+	
+
+});
+
+function updatequery(){
+	
+	var tablename = $('#tables').children("option:selected").val();
+	//document.getElementById('currentCat').innerHTML = "INSERT INTO " + tablename + " VALUES()";
+	//document.getElementById("selectcols").disabled = false;
+	var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallcolumns/" + tablename;
+
+	$.get(api , function(data, status){
+	console.log(data.length);
+	var temp = 0;
+		data.forEach(function(item) {
+			//colname.push(item);
+			var datatoadd = document.getElementById(item).value;
+
+			//document.getElementById('currentCat').innerHTML = "INSERT INTO " + tablename + " VALUES()";
+			
+			var el = document.getElementById('currentCat');
+			  var text = (el.innerText || el.textContent);
+			  var initial = text.split(")");
+				console.log(initial[0] + " insert here " + initial[1]);
+				if(temp < data.length-1)
+			  el.innerHTML = initial[0] + " " + datatoadd + ", )";
+	else
+		 el.innerHTML = initial[0] + " " + datatoadd + " )";
+		 console.log("done");
+			  //document.getElementById("selectcols").disabled = true;
+			//$('#colvalues').append( '<br><br><input type="text" id="' + item + '">' );
+			temp++;
+		});
+	});
+	}
+function runQuery(){
+	 var data = new FormData();
+	 var tablename = $('#tables').children("option:selected").val();
+	
+	 data.append('csvdata', $('input[type=file]')[0].files[0]); 
+	
+	 $.ajax({
+	    	type: "POST",
+			enctype: 'multipart/form-data',
+	        url: "http://localhost:8055/columnar/webapi/DataBaseManagerController/batchinsertintotable/" + tablename,
+	        data: data, 
+	       	processData: false,
+	        contentType: false,
+	        cache: false,
+	        async: true,
+	        timeout: 600000,
+	        
+	        success:function(result){
+	        	//window.alert(result);
+	        	//window.location.href="http://localhost:8055/amazon.com/";
+	        	alert(result);
+	        	if(result == "success")
+	        		location.reload(true);        		
+	        }
+	    });
+}
+
+</script>
+
+
+<!-- jQuery -->
+<script src="js/jquery-2.0.0.min.js" type="text/javascript"> </script>
+</head>
+<body>
+<div id="admin_header_container">
+
+<div class="topnav">
+  <a href="createTable.html">Create</a>
+  <a href="insertQuery.html">Insert</a>
+  <a href="selectQuery.html">Select</a>
+    <a href="selectQueryWithCondition.html">Conditional Select</a>
+    <a href="BulkInsert.html">Bulk Insert</a>
+    
+  
+</div>
+
+
+</div>
+<!--  --------------------------------------------main    body------------------------------------------------------------   -->
+ <section class="section-main bg padding-y-sm">
+<div class="card">
+  <div class="card-body" >
+  <h4 class="card-title mt-3 text-center">BULK INSERT DATA IN TABLE</h4>
+  	<h5 class="card-title" id="currentCat">&nbsp</h5> 
+  	<button onclick="runQuery()">RUN</button>
+    <h5 class="card-title" id="cat"></h5>
+</div> <!-- card.// -->
+<div class="input-group-append">
+				    </div>
+ <!-- container .//  -->
+</section>
+ 
+ <br>
+ <div style="margin-left: 50px">
+ 	<table>
+ 	<tr>
+ 		<td  valign="top">
+	 		Table:
+	 	</td>
+	 	<td  valign="top">
+			 <select name="tables" id='tables' style="width: 200px">
+			 <option selected="selected">Select Table</option> 
+			</select>
+		</td>
+	
+	
+	</tr>
+	<tr>
+	<td id="colnames"></td>
+	<td id="colvalues"></td>
+	</tr>
+	<tr>
+	<td></td>
+	<td></td>
+	</tr>
+	</table>
+	<input id="csvdatafile" type="file" accept=".csv" /> 
+	
+</div>
+ 
+ 
+ 
+
+ <!--  ---------------------------------------------main    body  end---------------------------------------------------------  -->
+ 
+
+
+<div id="admin_footer_container">
+
+</div>
+<!-- ========================= FOOTER END // ========================= -->
+
+
+</body>
+
+</html>

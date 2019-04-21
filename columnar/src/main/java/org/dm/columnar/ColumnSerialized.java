@@ -80,6 +80,13 @@ public class ColumnSerialized implements Serializable {
         }
     }
 
+    
+    public boolean insertbulk(List<String> listinputs){
+            data.addAll(listinputs);
+            return true;
+    }
+    
+    
     /**
      * Get Index of an element within the given part of column store.
      * @param input string to be searched
