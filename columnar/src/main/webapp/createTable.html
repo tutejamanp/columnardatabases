@@ -91,6 +91,8 @@ function runQuery(){
 	 data.append('tableName', tablename);
 	 var sersize =  document.getElementById("serializationSize").value;
 	 data.append('sersize', sersize);
+	 var query =  document.getElementById("query").innerHTML;
+	 data.append('sqlquery', query);
 	 
 	 data.append('colcount', listSize);
 	 
@@ -109,7 +111,7 @@ function runQuery(){
 	 data.append('colname', colname);
 	 data.append('coldatatype', coldatatype);
 	 data.append('colsize', colsize);
-	 
+
 	 for (var pair of data.entries()) {
 		    console.log(pair[0]+ ', ' + pair[1]); 
 		}
@@ -159,7 +161,7 @@ function runQuery(){
   <a href="selectQuery.html">Select</a>  
   <a href="selectQueryWithCondition.html">Conditional Select</a>
   <a href="BulkInsert.html">Bulk Insert</a>
-  
+  <a href="charts.html">Analysis</a>
 </div>
 
 

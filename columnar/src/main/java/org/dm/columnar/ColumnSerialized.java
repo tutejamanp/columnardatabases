@@ -23,6 +23,20 @@ public class ColumnSerialized implements Serializable {
 
 
 
+	public String getDataType() {
+		return dataType;
+	}
+
+
+
+
+	public void setDataType(String dataType) {
+		this.dataType = dataType;
+	}
+
+
+
+
 	public ColumnSerialized(int size) {
         elementCount = 0;
         storageSize = size;

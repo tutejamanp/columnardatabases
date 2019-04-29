@@ -1,12 +1,18 @@
 package org.dm.columnar;
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -20,12 +26,21 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
+import org.dm.db.DBConnection;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.opencsv.CSVReader;
+
+import jxl.Workbook;
+import jxl.write.WritableSheet;
+import jxl.write.WritableWorkbook;
+import jxl.write.WriteException;
 
 @Path("/DataBaseManagerController")
 public class DataBaseManager implements Serializable{
@@ -125,7 +140,8 @@ public class DataBaseManager implements Serializable{
     public static Response createtable(@FormDataParam("tableName") String tableName, @FormDataParam("colcount")  int columnCount, @FormDataParam("sersize") int serializationSize, 
     		@FormDataParam("coldatatype") String listdata,
     		@FormDataParam("colsize")  String listsizer,
-    		 @FormDataParam("colname") String columnnames ) 
+    		 @FormDataParam("colname") String columnnames,
+    		 @FormDataParam("sqlquery") String sqlquery) 
     		throws IOException {
 
 		List<String> listdatatype = new ArrayList<String> ();
@@ -184,12 +200,26 @@ public class DataBaseManager implements Serializable{
         dbManager.tableNames.add(tableName+".ser");
         serializer(dbManager, DataBaseName);
         
+        //sql code
+//        DBConnection database= new DBConnection();
+//        Connection conn = database.getConnection();
+//      
+//        sqlquery = sqlquery.replaceAll(" String", " varchar");
+//        System.out.println("query:"+sqlquery);
+//        Statement st = conn.createStatement();
+//        int rs = st.executeUpdate(sqlquery);
+//        
+//        conn.close();
+        //sql code
+        
+        
         
         return Response.status(404).entity("Table Created").build();
 		
 		}
 		
 		catch (Exception e) {
+			System.out.println(e.toString());
 		return Response.status(200).entity("Error in Table Creation").build();
 		}
         
@@ -225,6 +255,18 @@ public class DataBaseManager implements Serializable{
 	     //return Response.ok(dbManager.tableNames).build();
 	}
 	 
+	 @Path("/getcolumndatatype/{tablename}/{columnname}")
+	 @GET
+	 @Produces(MediaType.APPLICATION_JSON)
+	 public static Response getcolumndatatype (@PathParam("tablename") String tablename,@PathParam("columnname") String columnname) throws IOException {
+		 TableManager tableManager = TableManager.deserializer(tablename + ".ser");
+		 ColumnManager column = tableManager.columnManagers.get(columnname);
+		 return Response.ok(column.getDataType()).build();
+	     //return Response.ok(dbManager.tableNames).build();
+	}
+	
+	 
+	
 	 @Path("/getallcolumndatatypes/{tablename}")
 	 @GET
 	 @Produces(MediaType.APPLICATION_JSON)
@@ -236,17 +278,13 @@ public class DataBaseManager implements Serializable{
 	     //return Response.ok(dbManager.tableNames).build();
 	}
 	 
-	 
-	 
-	 
-	 
 	
 	@POST 
 	@Path("/insertintotable/{tablename}")
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces(MediaType.APPLICATION_JSON)
 	
-    public static void insertintotable (@PathParam("tablename") String loadTable, @FormDataParam("valuelist") String valuelist) throws IOException {
+    public static void insertintotable (@PathParam("tablename") String loadTable, @FormDataParam("valuelist") String valuelist, @FormDataParam("sqlquery") String sqlquery) throws IOException {
 
 		System.out.println(loadTable + " " + valuelist);
         String DataBaseName = "CollegeManagement.ser";
@@ -277,6 +315,21 @@ public class DataBaseManager implements Serializable{
         //Storing the info of the table
         TableManager.serializer(tableManager, loadTable+".ser");
         System.out.println(dbManager);
+        
+      //sql code
+        try {
+        DBConnection database= new DBConnection();
+        Connection conn = database.getConnection();
+        //sqlquery = sqlquery.replaceAll(" String", " varchar");
+        System.out.println("query:"+sqlquery);
+        Statement st = conn.createStatement();
+        st.executeUpdate(sqlquery);
+        conn.close();
+        }catch (Exception e) {
+        	System.out.println(e.toString());
+        }
+        
+        //sql code
 
     }
 
@@ -312,7 +365,9 @@ public class DataBaseManager implements Serializable{
 	    while ((nextLine = reader.readNext()) != null) {
 	    	
 	    	
-	    	int j = 0; 
+	    	int j = 0;
+	    	
+	        
             for (String e : nextLine) {
                 System.out.format("%s ", e);
                 if(!insertBulkData.containsKey(j)) {
@@ -359,7 +414,7 @@ public class DataBaseManager implements Serializable{
 	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces(MediaType.APPLICATION_JSON)
     public static Response searchintable (@PathParam("tablename") String loadTable,@FormDataParam("selectedcols")  String selectedcols,  @FormDataParam("noOps") int noOps, @FormDataParam("columns") String columns,
-    		@FormDataParam("values") String values, @FormDataParam("comparators") String comparators, @FormDataParam("operations") String operations) throws IOException {
+    		@FormDataParam("values") String values, @FormDataParam("comparators") String comparators, @FormDataParam("operations") String operations, @FormDataParam("sqlquery") String sqlquery) throws IOException {
         ArrayList<OperationPair> operationPairs = new ArrayList<OperationPair>();
         
        String listcolumnName [] = columns.split(",");
@@ -385,7 +440,7 @@ public class DataBaseManager implements Serializable{
        for (String col : listcolumnstodisplay ){
     	   columnli.add(col);
        }
-       long startTime = System.currentTimeMillis(); 
+       long colstartTime = System.currentTimeMillis(); 
        
         for(int i = 1; i < noOps; i++) {
         	
@@ -426,10 +481,58 @@ public class DataBaseManager implements Serializable{
         
         
         TableManager.serializer(selectTable, loadTable+ ".ser");
-        long endTime = System.currentTimeMillis();
-		 long totalTime = endTime - startTime; 
-		 System.out.println("------time in seconds is :"+totalTime);
-        return Response.ok(selectTable.getSelectedValues(selectedidf,columnli)).build();
+        GenericEntity<Map<String,List<String>>> columnsEntity;
+		columnsEntity  = new GenericEntity<Map<String,List<String>>>( selectTable.getSelectedValues(selectedidf,columnli)) { };
+        long colendTime = System.currentTimeMillis();
+		 long coltotalTime = colendTime - colstartTime; 
+		 
+		 long sqlstartTime = 0; 
+ 		 
+	 		//sql code
+	         try {
+		         DBConnection database= new DBConnection();
+		         Connection conn = database.getConnection();
+		         //sqlquery = sqlquery.replaceAll(" String", " varchar");
+		         System.out.println("query:"+sqlquery);
+		         Statement st = conn.createStatement();
+		         sqlstartTime = System.currentTimeMillis();
+		         sqlquery = sqlquery.substring(0, sqlquery.length()-3);
+		         ResultSet rs = st.executeQuery(sqlquery);
+		         conn.close();
+	         }catch (Exception e) {
+	         	System.out.println(e.toString());
+	         }
+	         //sql code
+	         
+	         
+			 long sqlendTime = System.currentTimeMillis();
+			 long sqltotalTime = sqlendTime - sqlstartTime; 
+
+			 
+			//save analysis
+		        try {
+		        DBConnection database= new DBConnection();
+		        Connection conn = database.getConnection();
+		        System.out.println("--------------------------------");
+		        sqlquery = sqlquery.replaceAll("'", "");
+		        String qry = "INSERT INTO analysis VALUES('CONDITIONAL SELECT','" + sqlquery + "'," + sqltotalTime + "," + coltotalTime + ")"; 
+		        System.out.println(qry);
+		        Statement st = conn.createStatement();
+		        st.executeUpdate(qry);
+		        conn.close();
+		        }catch (Exception e) {
+		        	System.out.println(e.toString());
+		        }
+		        
+		        //save analysis
+			 
+			 
+			 
+			 List<String> timingsList = new ArrayList<>();
+			 timingsList.add(String.valueOf(coltotalTime));
+			 timingsList.add(String.valueOf(sqltotalTime));
+			 columnsEntity.getEntity().put("timings", timingsList);
+        return Response.ok(columnsEntity).build();
     }
 	 
     
@@ -437,7 +540,7 @@ public class DataBaseManager implements Serializable{
      @POST 
 	 @Produces(MediaType.APPLICATION_JSON)
  	@Consumes(MediaType.MULTIPART_FORM_DATA)
-    public static Response getvalues (@PathParam("tablename") String loadTable, @FormDataParam("collist") String collist) throws IOException {
+    public static Response getvalues (@PathParam("tablename") String loadTable, @FormDataParam("collist") String collist, @FormDataParam("sqlquery") String sqlquery) throws IOException {
     	 
     	 System.out.println("-----" + loadTable + " " + collist);
     	 ArrayList<String> columnNames = new ArrayList<String> ();
@@ -447,19 +550,156 @@ public class DataBaseManager implements Serializable{
  				columnNames.add(s.trim());
  		}
  		
- 		 long startTime = System.currentTimeMillis(); 
+ 		 long colstartTime = System.currentTimeMillis(); 
     	 TableManager getTableValues = TableManager.deserializer(loadTable + ".ser");
+    	 
+   
+    	 
          GenericEntity<Map<String,List<String>>> columns;
 		 columns  = new GenericEntity<Map<String,List<String>>>( getTableValues.getAllSelectedValues(columnNames)) { };
-		 long endTime = System.currentTimeMillis();
-		 long totalTime = endTime - startTime; 
-		 System.out.println("time in seconds is :"+totalTime);
+		 long colendTime = System.currentTimeMillis();
+		 long coltotalTime = colendTime - colstartTime; 
+		 
+ 		 long sqlstartTime = 0; 
+ 		 
+ 		//sql code
+         try {
+	         DBConnection database= new DBConnection();
+	         Connection conn = database.getConnection();
+	         //sqlquery = sqlquery.replaceAll(" String", " varchar");
+	         System.out.println("query:"+sqlquery);
+	         Statement st = conn.createStatement();
+	         sqlstartTime = System.currentTimeMillis();
+	         ResultSet rs = st.executeQuery(sqlquery);
+	         conn.close();
+         }catch (Exception e) {
+         	System.out.println(e.toString());
+         }
+         //sql code
+         
+         
+		 long sqlendTime = System.currentTimeMillis();
+		 long sqltotalTime = sqlendTime - sqlstartTime; 
+
+		 
+		//save analysis
+	        try {
+	        DBConnection database= new DBConnection();
+	        Connection conn = database.getConnection();
+	        System.out.println("--------------------------------");
+	        String qry = "INSERT INTO analysis VALUES('SELECT','" + sqlquery + "'," + sqltotalTime + "," + coltotalTime + ")"; 
+	        System.out.println(qry);
+	        Statement st = conn.createStatement();
+	        st.executeUpdate(qry);
+	        conn.close();
+	        }catch (Exception e) {
+	        	System.out.println(e.toString());
+	        }
+	        
+	        //save analysis
+		 
+		 
+		 
+		 List<String> timingsList = new ArrayList<>();
+		 timingsList.add(String.valueOf(coltotalTime));
+		 timingsList.add(String.valueOf(sqltotalTime));
+		 columns.getEntity().put("timings", timingsList);
+		 System.out.println("time in seconds is :col--"+ coltotalTime + " sql--" + sqltotalTime);
 		 return Response.ok(columns).build();
 
      }
     
+     
+     
+	 @Path("/getanalysisdata")
+	 @GET
+	 @Produces(MediaType.APPLICATION_JSON)
+	 public static Response getAnalysis () throws IOException {
+		//sql code
+		  JsonArray obj = new JsonArray();
+         try {
+	         DBConnection database= new DBConnection();
+	         Connection conn = database.getConnection();
+	         //sqlquery = sqlquery.replaceAll(" String", " varchar");
+	         String sqlquery = "SELECT * FROM analysis";
+	         System.out.println("query:"+sqlquery);
+	         Statement st = conn.createStatement();
+	         ResultSet rs = st.executeQuery(sqlquery);
+	         while(rs.next()) {
+	        	 JsonObject o = new JsonObject();
+	        	 o.addProperty("queryType", rs.getString("queryType"));
+	        	 o.addProperty("query", rs.getString("query"));
+	        	 o.addProperty("sqlTime", rs.getInt("sqlTime"));
+	        	 o.addProperty("columnarTime", rs.getInt("columnarTime"));
+	        	 obj.add(o);
+	        	}
+	         conn.close();
+         }catch (Exception e) {
+         	System.out.println(e.toString());
+         }
+         //sql code
+		 return Response.ok(obj.toString()).build();
+	     //return Response.ok(dbManager.tableNames).build();
+	}
     
   
 
+	 @Path("/getallvaluesinfile/{tablename}")
+     @POST 
+     @Produces("text/plain")
+	 @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public static Response getvaluesinfile (@PathParam("tablename") String loadTable, @FormDataParam("collist") String collist) throws IOException, WriteException {
+     
+	    System.out.println("-----" + loadTable + " " + collist);
+	    ArrayList<String> columnNames = new ArrayList<String> ();
+	  
+	  for (String s : collist.split(",")) {
+	  if(!s.isEmpty())
+	  columnNames.add(s.trim());
+	  }
+	    TableManager getTableValues = TableManager.deserializer(loadTable + ".ser");
+	//         GenericEntity<Map<String,List<String>>> columns;
+	// columns  = new GenericEntity<Map<String,List<String>>>( getTableValues.getAllSelectedValues(columnNames)) { };
+	//return Response.ok(columns).build();
+	  String resp = "";
+	    Map<String,List<String>> data = getTableValues.getAllSelectedValues(columnNames);
+	   
+	   
+	    Collection<List<String>> values = data.values();
+	    ArrayList<String>[] targetArray = values.toArray(new ArrayList[values.size()]);
+	   
+	    System.out.println("--------------------");
+	   // System.out.println(targetArray[0].toString());
+	     
+	     
+	     
+	     
+	        String fileName = "C:\\Users\\Manpreet\\Desktop\\Columnar Databases\\columnar\\file.csv";
+	        WritableWorkbook workbook = Workbook.createWorkbook(new File(fileName));
+	        workbook.createSheet("Sheet1", 0);
+	        WritableSheet ws = workbook.getSheet( 0 );
+	        
+	         
+	    for(int i=0;i<targetArray[0].size();i++) {
+	   
+	    for(int j=0;j<targetArray.length;j++) {
+	  //  System.out.print(targetArray[j].get(i) + ", ");
+	    // row.createCell(j).setCellValue(helper.createRichTextString(targetArray[j].get(i)));
+	    jxl.write.Label newamount = new jxl.write.Label(j, i, targetArray[j].get(i));
+	                 ws.addCell(newamount);
+	    }
+	    //System.out.println("");
+	    }
+	     
+	    workbook.write();
+	        workbook.close();
+	      
+	     
+	     
+	    ResponseBuilder response = Response.ok("Success");  
+	         response.header("Content-Disposition","attachment; filename=\"javatpoint_file.txt\"");  
+	         return response.build();  
+	  }
+     
 
 }

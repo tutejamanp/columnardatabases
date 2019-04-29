@@ -113,7 +113,10 @@ function runQuery(){
 	 var tablename = $('#tables').children("option:selected").val();
 	
 	 data.append('collist', selectedcols);
-	
+	 var query = document.getElementById('currentCat').innerHTML;
+	 var coltiming = 0;
+	 var sqltiming = 0;
+	 data.append('sqlquery', query);
 	 $.ajax({
 	    	type: "POST",
 			enctype: 'multipart/form-data',
@@ -127,25 +130,33 @@ function runQuery(){
 	        
 	        success:function(result){
 	        	var tabledata = "";
-	        	console.log(result['col1231']);
+	        	console.log(result);
 	        	
 	        	
 	        	var keys = Object.keys(result);
 	        	var resultQuery;
 	        	var length = result[keys[0]].length;
+	        	if(length == 2)
+	        		length = result[keys[1]].length;
 	        	console.log("Length" + length);
 	        	for(var i = 0; i < length ; i++) {
 	        		var count = 0;
 	        		tabledata += "<tr>";
 	        		 jQuery.each( result, function( j, item ) {
 			       		 console.log("inner here" + item);
-			       		tabledata += "<td>" + result[keys[count]][i] + "</td>";
+			       		 if(j == 'timings'){
+			       			 coltiming = result[keys[count]][0];
+			       			 sqltiming = result[keys[count]][1];
+			       		 }else{
+			       			tabledata += "<td>" + result[keys[count]][i] + "</td>";
+			       		 }
 			       		count++;
 		       	 });
 	        		 tabledata += "</tr>";
 	        	}
+	        	console.log(coltiming + " " + sqltiming);
 	        	
-	        	
+	        	$('#timingslabel').html("Columnar database: "+coltiming + "ms <br/>SQL database: " + sqltiming+"ms");
 	        	
 	        	
 	        	
@@ -164,6 +175,28 @@ function runQuery(){
 	        }
 	    });
 }
+
+function runQueryForFile(){
+	var data = new FormData();
+	var tablename = $('#tables').children("option:selected").val();
+	data.append('collist', selectedcols);
+	$.ajax({
+	    type: "POST",
+	enctype: 'multipart/form-data',
+	        url: "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallvaluesinfile/" + tablename,
+	        data: data, 
+	         processData: false,
+	        contentType: false,
+	        cache: false,
+	        async: true,
+	        timeout: 600000,
+	        
+	        success:function(result){
+	        console.log(result);
+	        }
+	    });
+	}
+
 </script>
 
 
@@ -186,7 +219,7 @@ function runQuery(){
   <a href="selectQuery.html">Select</a>
     <a href="selectQueryWithCondition.html">Conditional Select</a>
     <a href="BulkInsert.html">Bulk Insert</a> 
-  
+   <a href="charts.html">Analysis</a>
 </div>
 
 
@@ -198,6 +231,7 @@ function runQuery(){
   <h4 class="card-title mt-3 text-center">FETCH DATA</h4>
   	<h5 class="card-title" id="currentCat">&nbsp</h5> 
   	<button  onclick="runQuery()">RUN</button>
+  <button  onclick="runQueryForFile()">DOWNLOAD</button> 
     <h5 class="card-title" id="cat"></h5>
 </div> <!-- card.// -->
 <div class="input-group-append">
@@ -226,6 +260,9 @@ function runQuery(){
 			 
 			</select>
 			<button id="selectcols" onclick="getSelectValues(document.getElementById('columns'))">Select</button>
+		</td>
+		<td>
+		 <span id="timingslabel"></span>
 		</td>
 	</tr>
 	</table>

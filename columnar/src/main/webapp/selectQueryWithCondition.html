@@ -98,22 +98,30 @@ $(document).ready(function() {
 		//document.getElementById('currentCat').innerHTML = "SELECT FROM " + tablename;
 
 		//document.getElementById("selectcols").disabled = false;
-		var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallcolumndatatypes/" + tablename;
+		//var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallcolumndatatypes/" + tablename;
 
-		$.get(api , function(data, status){
+		 //var tablename = $('#tables').children("option:selected").val();
+		 //console.log(tablename);
+		  var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getcolumndatatype/" + tablename + '/' + columnname;
+		  var xhttp = new XMLHttpRequest();
+		  xhttp.open("GET", api, false);
+		  xhttp.send();
+		  var datatype = xhttp.responseText;
+		
+		/* $.get(api , function(data, status){
 			console.log(data);
-			jQuery.each( data, function( j, item ) {
+			jQuery.each( data, function( j, item ) { */
 	      		
-	      		 if(columnname == item['columnName']){
+	      		// if(columnname == item['columnName']){
 	      			 document.getElementById('comparator').options.length = 0;
-	      			 console.log(item['dataType']);
+	      			// console.log(item['dataType']);
 	      			var o1 = new Option("=", "=");
     				$(o1).html("=");
     				$("#comparator").append(o1);
     				var o1 = new Option("!=", "!=");
     				$(o1).html("!=");
     				$("#comparator").append(o1);
-	      			 if(item['dataType'] == 'Integer'){
+	      			 if(datatype == 'Integer'){
 	      				var o1 = new Option("<", "<");
 	    				$(o1).html("<");
 	    				$("#comparator").append(o1);
@@ -127,9 +135,9 @@ $(document).ready(function() {
 	    				$(o1).html(">=");
 	    				$("#comparator").append(o1);
 	      			 }
-	      		 }
-	  	 	});	
-		});
+	      		// }
+	  	 /* 	});	
+		}); */
 		var tablename = $(this).children("option:selected").val();
 		
 	});
@@ -173,7 +181,20 @@ function addlabels(){
        var el = document.getElementById('currentCat');
 	  var text = (el.innerText || el.textContent);
 	  
-	 el.innerHTML = text + " WHERE " + colname + " " + comparator + " " + value + " " + condition;
+	  var tablename = $('#tables').children("option:selected").val();
+	 console.log(tablename);
+	  var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getcolumndatatype/" + tablename + '/' + colname;
+	 	
+	  var xhttp = new XMLHttpRequest();
+	  xhttp.open("GET", api, false);
+	  xhttp.send();
+	  var datatype = xhttp.responseText;
+		//console.log(naru);
+	  
+	  if(datatype == 'String')
+	 	el.innerHTML = text + " WHERE " + colname + " " + comparator + " '" + value + "' " + condition;
+	  else
+		  el.innerHTML = text + " WHERE " + colname + " " + comparator + " " + value + " " + condition;
  	   
 	 // var initial = text.split(")");
 /* 	 if(listSize == 0)
@@ -191,6 +212,10 @@ function runQuery(){
 	
 	data.append('selectedcols', selectedcols);
 	 data.append('tablename', tablename);
+	 
+	 var query = document.getElementById('currentCat').innerHTML;
+	 data.append('sqlquery', query);
+	 
 	 
 	 var colname = [];
 	 var comparator = [];
@@ -228,7 +253,8 @@ function runQuery(){
 	  var text = (el.innerText || el.textContent);
 	  
 		 el.innerHTML = text.substring(0, text.length-3);
-	 	
+		 var coltiming = 0;
+		 var sqltiming = 0;
 	 
 	  $.ajax({
 	    	type: "POST",
@@ -249,21 +275,31 @@ function runQuery(){
 	        	var keys = Object.keys(result);
 	        	var resultQuery;
 	        	var length = result[keys[0]].length;
+	        	if(length == 2)
+	        		length = result[keys[1]].length;
 	        	console.log("Length" + length);
 	        	for(var i = 0; i < length ; i++) {
 	        		var count = 0;
 	        		tabledata += "<tr>";
 	        		 jQuery.each( result, function( j, item ) {
 			       		 console.log("inner here" + item);
+			       		 if(j == 'timings'){
+			       			 coltiming = result[keys[count]][0];
+			       			 sqltiming = result[keys[count]][1];
+			       		 }else{
 			       		tabledata += "<td>" + result[keys[count]][i] + "</td>";
+			       		 }
 			       		count++;
 		       	 });
 	        		 tabledata += "</tr>";
 	        	}
+	          	$('#timingslabel').html("Columnar database: "+coltiming + "ms <br/>SQL database: " + sqltiming+"ms");
+
 	        	
 	        	$('#resulttable').append(tabledata); 
 	        	console.log(result);
 	        }
+
 	    }); 
 }
 </script>
@@ -288,6 +324,7 @@ function runQuery(){
   <a href="selectQuery.html">Select</a>
   <a href="selectQueryWithCondition.html">Conditional Select</a>
   <a href="BulkInsert.html">Bulk Insert</a>
+   <a href="charts.html">Analysis</a>
 </div>
 
 
@@ -327,6 +364,9 @@ function runQuery(){
 			 
 			</select>
 			<button id="selectcols" onclick="getSelectValues(document.getElementById('columns'))">Select</button>
+		</td>
+		<td>
+		 <span id="timingslabel"></span>
 		</td>
 	</tr>
 	</table>

@@ -77,15 +77,15 @@ public class TableManager implements Serializable{
 
     
     public void bulkinsert(HashMap<Integer, List<String>> mapdata, List<String> columnnames) {        
-        for (Integer i : mapdata.keySet()) {
+        
+    	System.out.println("for check sake : "+mapdata.keySet());
+    	
+    	for (Integer i : mapdata.keySet()) {
         	ColumnManager column = columnManagers.get(columnnames.get(i));
         	 column.bulkinsert(mapdata.get(i));
         }     
     }
-    
-    
-    
-    
+ 
     /**
      * Selecting all column Ids of for a particular query of operations given
      * @param operations
@@ -117,8 +117,10 @@ public class TableManager implements Serializable{
                 operation = currentOp.nextOperation;
                 operationCount++;
             } else if(operation.equals("AND")){
+            	
                 currentResult.retainAll(tempResult);
                 operation = currentOp.nextOperation;
+            
             } else if(operation.equals("OR")){
                 currentResult.addAll(tempResult);
                 operation = currentOp.nextOperation;
@@ -134,6 +136,11 @@ public class TableManager implements Serializable{
         System.out.println(currentResult);
         return currentResult.toArray(new Integer[currentResult.size()]);
     }
+    
+    
+    
+    
+    
 
     /**
      * Retrives the rows containing the values.
@@ -152,6 +159,7 @@ public class TableManager implements Serializable{
             ColumnManager column = columnManagers.get(columnName);
 
             //Store the values in temp Map
+            System.out.println(columnName + "------" + selectedIds.toString());
             columnValues.put(columnName, column.getColumnValues(selectedIds));
         }
         System.out.println("Selected Column Values Are :");

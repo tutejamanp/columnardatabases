@@ -93,14 +93,16 @@ function updatequery(){
 	var tablename = $('#tables').children("option:selected").val();
 	//document.getElementById('currentCat').innerHTML = "INSERT INTO " + tablename + " VALUES()";
 	//document.getElementById("selectcols").disabled = false;
-	var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallcolumns/" + tablename;
+	var api = "http://localhost:8055/columnar/webapi/DataBaseManagerController/getallcolumndatatypes/" + tablename;
 
 	$.get(api , function(data, status){
-	console.log(data.length);
+	var total = Object.keys(data).length;
 	var temp = 0;
-		data.forEach(function(item) {
+	console.log(data);
+	jQuery.each( data, function( j, item ) {
 			//colname.push(item);
-			var datatoadd = document.getElementById(item).value;
+			console.log(j);
+			var datatoadd = document.getElementById(item['columnName']).value;
 
 			//document.getElementById('currentCat').innerHTML = "INSERT INTO " + tablename + " VALUES()";
 			
@@ -108,10 +110,18 @@ function updatequery(){
 			  var text = (el.innerText || el.textContent);
 			  var initial = text.split(")");
 				console.log(initial[0] + " insert here " + initial[1]);
-				if(temp < data.length-1)
-			  el.innerHTML = initial[0] + " " + datatoadd + ", )";
-	else
-		 el.innerHTML = initial[0] + " " + datatoadd + " )";
+				if(temp < total-1){
+					  if(item['dataType'] == 'String')
+						  el.innerHTML = initial[0] + " '" + datatoadd + "', )";
+					  else
+		 				 el.innerHTML = initial[0] + " " + datatoadd + ", )";
+				}
+				else{
+					 if(item['dataType'] == 'String')
+						  el.innerHTML = initial[0] + " '" + datatoadd + "' )";
+					  else
+		 				 el.innerHTML = initial[0] + " " + datatoadd + " )";
+				}
 		 console.log("done");
 			  //document.getElementById("selectcols").disabled = true;
 			//$('#colvalues').append( '<br><br><input type="text" id="' + item + '">' );
@@ -131,6 +141,8 @@ function runQuery(){
 	console.log(values); 
 	data.append('valuelist', values);
 	
+	var query = document.getElementById('currentCat').innerHTML;
+	data.append('sqlquery', query);
 	
 	 $.ajax({
 	    	type: "POST",
@@ -177,7 +189,7 @@ function runQuery(){
   <a href="selectQuery.html">Select</a>
     <a href="selectQueryWithCondition.html">Conditional Select</a>
     <a href="BulkInsert.html">Bulk Insert</a>
-  
+   <a href="charts.html">Analysis</a>
 </div>
 
 
